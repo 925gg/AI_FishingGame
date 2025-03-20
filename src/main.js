@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import GameManager from './game/GameManager.js';
-import Fishing from './game/Fishing.js';
+import GameState from './game/GameState.js';
+import FishingLogic from './game/FishingLogic.js';
+import UI from './game/UI.js';
 
 // Create scene, camera, and renderer
 const scene = new THREE.Scene();
@@ -52,7 +53,8 @@ const fishingRod = new THREE.Mesh(rodGeometry, rodMaterial);
 
 // Position the rod in first-person view
 fishingRod.position.set(0.3, -0.5, -0.7);
-fishingRod.rotation.set(Math.PI / 6, 0, -Math.PI / 12); // Angle the rod forward and to the side
+fishingRod.rotation.set(Math.PI / 6, 0, 0); // Angle the rod forward slightly
+
 scene.add(fishingRod);
 
 // Position camera
@@ -60,65 +62,98 @@ camera.position.y = -0.5;
 camera.position.z = 0;
 camera.rotation.x = Math.PI / 12; // Tilt camera down slightly to see the water
 
-// Initialize game manager
-const gameManager = new GameManager(scene, water.position.y);
+// Initialize game state
+const gameState = new GameState();
+const ui = new UI(gameState);
+const fishingLogic = new FishingLogic(scene, water, gameState);
 
-// Initialize fishing mechanics
-const fishing = new Fishing(scene, camera, fishingRod, water.position.y);
+// Create raycaster for mouse interaction
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 
-// Add catch fish event on reel in
-document.addEventListener('mouseup', (event) => {
-  if (event.button === 0) { // Left click
-    const castPosition = fishing.getCastPosition();
-    if (castPosition) {
-      const caughtFish = gameManager.catchFish(castPosition);
-      if (caughtFish) {
-        // Display caught fish message
-        const fishMessage = document.createElement('div');
-        fishMessage.style.position = 'absolute';
-        fishMessage.style.bottom = '20px';
-        fishMessage.style.left = '50%';
-        fishMessage.style.transform = 'translateX(-50%)';
-        fishMessage.style.color = 'white';
-        fishMessage.style.fontSize = '20px';
-        fishMessage.style.fontFamily = 'Arial, sans-serif';
-        fishMessage.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
-        fishMessage.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-        fishMessage.style.padding = '10px';
-        fishMessage.style.borderRadius = '5px';
-        fishMessage.innerHTML = `Caught a ${caughtFish.name}! +${caughtFish.points} points`;
-        document.body.appendChild(fishMessage);
-        
-        // Remove message after 2 seconds
-        setTimeout(() => {
-          document.body.removeChild(fishMessage);
-        }, 2000);
-      }
-    }
-  }
+// Event Listeners
+window.addEventListener('resize', onWindowResize, false);
+window.addEventListener('mousedown', onMouseDown, false);
+window.addEventListener('keydown', onKeyDown, false);
+
+// Handle start button click
+ui.getStartButton().addEventListener('click', () => {
+    // Show countdown before starting
+    ui.showCountdown(3, () => {
+        gameState.startGame();
+        fishingLogic.spawnFish(20); // Spawn fish at game start
+    });
 });
 
-// Animation loop
-function animate() {
-  requestAnimationFrame(animate);
-  
-  // Update fishing mechanics
-  fishing.update();
-  
-  // Update fish
-  gameManager.updateFish();
-  
-  renderer.render(scene, camera);
+// Handle mouse click for casting fishing line
+function onMouseDown(event) {
+    // Only allow casting if game is active and not already fishing
+    if (!gameState.isGameActive || gameState.isFishing) return;
+    
+    // Calculate mouse position in normalized device coordinates
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    
+    // Update the raycaster
+    raycaster.setFromCamera(mouse, camera);
+    
+    // Check for intersections with the water
+    const intersects = raycaster.intersectObject(water);
+    
+    if (intersects.length > 0) {
+        // Get intersection point
+        const intersectPoint = intersects[0].point;
+        
+        // Calculate rod tip position (for line origin)
+        const rodTipPosition = new THREE.Vector3(
+            fishingRod.position.x,
+            fishingRod.position.y - fishingRod.geometry.parameters.height / 2,
+            fishingRod.position.z
+        );
+        
+        // Cast the line
+        fishingLogic.castLine(rodTipPosition, intersectPoint);
+    }
+}
+
+// Handle key press for reeling in fish
+function onKeyDown(event) {
+    // Space bar to catch fish
+    if (event.code === 'Space' && gameState.isFishing && gameState.caughtFish) {
+        fishingLogic.reelIn();
+    }
 }
 
 // Handle window resize
-window.addEventListener('resize', onWindowResize, false);
-
 function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Game clock
+let lastTime = 0;
+
+// Animation loop
+function animate(time) {
+    requestAnimationFrame(animate);
+    
+    // Calculate delta time in seconds
+    const deltaTime = (time - lastTime) / 1000;
+    lastTime = time;
+    
+    // Update game state
+    gameState.updateTime(deltaTime);
+    
+    // Update fish movement
+    fishingLogic.updateFish(deltaTime);
+    
+    // Update UI
+    ui.update();
+    
+    // Render scene
+    renderer.render(scene, camera);
 }
 
 // Start the animation
-animate(); 
+animate(0); 
