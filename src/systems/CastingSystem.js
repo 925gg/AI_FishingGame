@@ -1,60 +1,80 @@
-import { SphereGeometry, MeshPhongMaterial, Mesh, Vector3 } from 'three';
+import { SphereGeometry, Mesh, MeshPhongMaterial, Vector3 } from 'three';
 
 export class CastingSystem {
     constructor() {
         // Create bobber
-        const geometry = new SphereGeometry(0.2, 16, 16);
-        const material = new MeshPhongMaterial({ color: 0xff0000 });
-        this.bobber = new Mesh(geometry, material);
-        this.bobber.position.set(0, 0, 0);
+        const bobberGeometry = new SphereGeometry(0.2, 32, 32);
+        const bobberMaterial = new MeshPhongMaterial({ color: 0xff0000 });
+        this.bobber = new Mesh(bobberGeometry, bobberMaterial);
+        this.bobber.castShadow = true;
 
-        // Casting parameters
+        // Initialize position
+        this.startPosition = new Vector3(0, 1, 0);
+        this.bobber.position.copy(this.startPosition);
+
+        // Casting variables
         this.isCasting = false;
+        this.castStartTime = 0;
         this.castPower = 0;
-        this.maxCastPower = 1;
-        this.castSpeed = 2;
-        this.reelSpeed = 3;
-        this.maxCastDistance = 20;
-        this.initialPosition = new Vector3(0, 0, 0);
-        this.targetPosition = new Vector3(0, 0, 0);
+        this.maxCastPower = 20;
+        this.castPowerRate = 10; // Power increase per second
+        this.gravity = 9.8;
+        this.velocity = new Vector3();
+    }
+
+    setStartPosition(position) {
+        // Set the start position slightly above and behind the boat
+        this.startPosition.copy(position);
+        this.startPosition.y += 1; // Raise it above the boat
+        
+        if (!this.isCasting) {
+            this.bobber.position.copy(this.startPosition);
+        }
     }
 
     startCast() {
-        this.isCasting = true;
-        this.castPower = 0;
-        this.initialPosition.copy(this.bobber.position);
-        this.targetPosition.set(
-            this.initialPosition.x + Math.random() * this.maxCastDistance - this.maxCastDistance/2,
-            0,
-            this.initialPosition.z + Math.random() * this.maxCastDistance - this.maxCastDistance/2
-        );
+        if (!this.isCasting) {
+            this.isCasting = true;
+            this.castStartTime = Date.now();
+            this.castPower = 0;
+            this.bobber.position.copy(this.startPosition);
+        }
     }
 
     update(deltaTime) {
         if (this.isCasting) {
-            // Increase cast power
-            this.castPower = Math.min(this.castPower + deltaTime * this.castSpeed, this.maxCastPower);
+            const currentTime = Date.now();
+            const castDuration = (currentTime - this.castStartTime) / 1000; // Convert to seconds
             
-            // Calculate current position
-            const progress = this.castPower / this.maxCastPower;
-            const height = Math.sin(progress * Math.PI) * 5; // Arc height
+            this.castPower = Math.min(castDuration * this.castPowerRate, this.maxCastPower);
             
-            this.bobber.position.x = this.initialPosition.x + (this.targetPosition.x - this.initialPosition.x) * progress;
-            this.bobber.position.y = this.initialPosition.y + height;
-            this.bobber.position.z = this.initialPosition.z + (this.targetPosition.z - this.initialPosition.z) * progress;
+            // When spacebar is released, the cast will be completed in the onKeyUp handler
+        } else if (this.velocity.length() > 0) {
+            // Update position based on velocity
+            this.bobber.position.x += this.velocity.x * deltaTime;
+            this.bobber.position.y += this.velocity.y * deltaTime;
+            this.bobber.position.z += this.velocity.z * deltaTime;
+            
+            // Apply gravity
+            this.velocity.y -= this.gravity * deltaTime;
+            
+            // Stop if bobber hits the water
+            if (this.bobber.position.y <= 0) {
+                this.bobber.position.y = 0;
+                this.velocity.set(0, 0, 0);
+            }
+        }
+    }
 
-            // Check if cast is complete
-            if (this.castPower >= this.maxCastPower) {
-                this.isCasting = false;
-                this.bobber.position.y = 0; // Place bobber on water surface
-            }
-        } else {
-            // Reel in if not casting
-            const direction = new Vector3().subVectors(this.initialPosition, this.bobber.position);
-            if (direction.length() > 0.1) {
-                direction.normalize().multiplyScalar(deltaTime * this.reelSpeed);
-                this.bobber.position.add(direction);
-            }
+    completeCast() {
+        if (this.isCasting) {
+            this.isCasting = false;
+            
+            // Calculate cast direction (forward from the start position)
+            const castDirection = new Vector3(0, 0.5, -1).normalize();
+            
+            // Set initial velocity based on cast power
+            this.velocity.copy(castDirection).multiplyScalar(this.castPower);
         }
     }
 

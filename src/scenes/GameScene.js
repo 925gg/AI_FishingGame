@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { CastingSystem } from '../systems/CastingSystem';
 import { WaterSystem } from '../systems/WaterSystem';
 import { FishBiteSystem } from '../systems/FishBiteSystem';
+import { BoatSystem } from '../systems/BoatSystem';
 
 export class GameScene {
     constructor() {
@@ -33,6 +34,7 @@ export class GameScene {
         this.castingSystem = new CastingSystem();
         this.waterSystem = new WaterSystem();
         this.fishBiteSystem = new FishBiteSystem();
+        this.boatSystem = new BoatSystem();
 
         // Setup controls
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -44,6 +46,7 @@ export class GameScene {
         // Add systems to scene
         this.scene.add(this.castingSystem.getBobber());
         this.scene.add(this.waterSystem.getWaterMesh());
+        this.scene.add(this.boatSystem.getBoat());
 
         // Event listeners
         window.addEventListener('resize', this.onWindowResize.bind(this));
@@ -60,35 +63,61 @@ export class GameScene {
         const deltaTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
 
-        // Update systems
-        this.castingSystem.update(deltaTime);
-        this.waterSystem.update(deltaTime);
+        // Update boat system
+        this.boatSystem.update(deltaTime);
 
-        // Check for fish bite
-        const bobberPosition = this.castingSystem.getBobberPosition();
-        const waterLevel = this.waterSystem.getWaterLevel();
-        
-        if (this.fishBiteSystem.detectBite(bobberPosition, waterLevel)) {
-            console.log('Fish is biting! Press R to reel in!');
+        // Update camera position to follow boat in driving mode
+        if (this.boatSystem.isDrivingMode()) {
+            const boatPosition = this.boatSystem.getPosition();
+            const boatRotation = this.boatSystem.getRotation();
+            
+            // Position camera behind and above the boat
+            const cameraOffset = new Vector3(-Math.sin(boatRotation.y) * 10, 5, -Math.cos(boatRotation.y) * 10);
+            this.camera.position.copy(boatPosition).add(cameraOffset);
+            this.camera.lookAt(boatPosition);
+            
+            // Disable orbit controls while driving
+            this.controls.enabled = false;
+        } else {
+            // Enable orbit controls in fishing mode
+            this.controls.enabled = true;
         }
 
-        // Update fish bite state
-        const isStillBiting = this.fishBiteSystem.update(deltaTime);
-        if (!isStillBiting && this.fishBiteSystem.getState().isFishBiting) {
-            console.log('Fish got away!');
-        }
+        // Update fishing systems only when not in driving mode
+        if (!this.boatSystem.isDrivingMode()) {
+            // Update casting system with boat position
+            const boatPosition = this.boatSystem.getPosition();
+            this.castingSystem.setStartPosition(boatPosition);
+            
+            this.castingSystem.update(deltaTime);
+            this.waterSystem.update(deltaTime);
 
-        // Update mini-game if active
-        if (this.fishBiteSystem.getState().miniGameActive) {
-            const miniGameComplete = this.fishBiteSystem.updateMiniGame(deltaTime, this.isReeling);
-            if (miniGameComplete) {
-                const state = this.fishBiteSystem.getState();
-                if (state.miniGameSuccess) {
-                    console.log(`Caught a ${state.currentFish.type}!`);
-                    console.log(`Weight: ${state.currentFish.weight}kg`);
-                    console.log(`Value: ${state.currentFish.value} coins`);
-                } else {
-                    console.log('Fish got away!');
+            // Check for fish bite
+            const bobberPosition = this.castingSystem.getBobberPosition();
+            const waterLevel = this.waterSystem.getWaterLevel();
+            
+            if (this.fishBiteSystem.detectBite(bobberPosition, waterLevel)) {
+                console.log('Fish is biting! Press R to reel in!');
+            }
+
+            // Update fish bite state
+            const isStillBiting = this.fishBiteSystem.update(deltaTime);
+            if (!isStillBiting && this.fishBiteSystem.getState().isFishBiting) {
+                console.log('Fish got away!');
+            }
+
+            // Update mini-game if active
+            if (this.fishBiteSystem.getState().miniGameActive) {
+                const miniGameComplete = this.fishBiteSystem.updateMiniGame(deltaTime, this.isReeling);
+                if (miniGameComplete) {
+                    const state = this.fishBiteSystem.getState();
+                    if (state.miniGameSuccess) {
+                        console.log(`Caught a ${state.currentFish.type}!`);
+                        console.log(`Weight: ${state.currentFish.weight}kg`);
+                        console.log(`Value: ${state.currentFish.value} coins`);
+                    } else {
+                        console.log('Fish got away!');
+                    }
                 }
             }
         }
@@ -101,32 +130,44 @@ export class GameScene {
     }
 
     onKeyDown(event) {
-        switch (event.code) {
-            case 'Space':
-                if (!this.isCasting) {
-                    this.isCasting = true;
-                    this.castingSystem.startCast();
-                }
-                break;
-            case 'KeyR':
-                if (this.fishBiteSystem.getState().isFishBiting) {
-                    this.isReeling = true;
-                    if (!this.fishBiteSystem.getState().miniGameActive) {
-                        this.fishBiteSystem.startMiniGame();
+        // Handle boat controls
+        this.boatSystem.handleKeyDown(event);
+
+        // Handle fishing controls only when not in driving mode
+        if (!this.boatSystem.isDrivingMode()) {
+            switch (event.code) {
+                case 'Space':
+                    if (!this.isCasting) {
+                        this.isCasting = true;
+                        this.castingSystem.startCast();
                     }
-                }
-                break;
+                    break;
+                case 'KeyR':
+                    if (this.fishBiteSystem.getState().isFishBiting) {
+                        this.isReeling = true;
+                        if (!this.fishBiteSystem.getState().miniGameActive) {
+                            this.fishBiteSystem.startMiniGame();
+                        }
+                    }
+                    break;
+            }
         }
     }
 
     onKeyUp(event) {
-        switch (event.code) {
-            case 'Space':
-                this.isCasting = false;
-                break;
-            case 'KeyR':
-                this.isReeling = false;
-                break;
+        // Handle boat controls
+        this.boatSystem.handleKeyUp(event);
+
+        // Handle fishing controls only when not in driving mode
+        if (!this.boatSystem.isDrivingMode()) {
+            switch (event.code) {
+                case 'Space':
+                    this.isCasting = false;
+                    break;
+                case 'KeyR':
+                    this.isReeling = false;
+                    break;
+            }
         }
     }
 
