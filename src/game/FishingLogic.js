@@ -2,10 +2,22 @@ import * as THREE from 'three';
 import { createFishMesh, getRandomFishType } from './FishTypes.js';
 
 class FishingLogic {
-    constructor(scene, waterSurface, gameState) {
+    constructor(scene, waterSurface, gameState, fishingRod) {
         this.scene = scene;
         this.waterSurface = waterSurface;
         this.gameState = gameState;
+        this.fishingRod = fishingRod;
+        
+        // Store original rod position and rotation for animations
+        this.originalRodPosition = fishingRod.position.clone();
+        this.originalRodRotation = fishingRod.rotation.clone();
+        
+        // Rod animation properties
+        this.isRodAnimating = false;
+        this.rodAnimationTime = 0;
+        this.rodAnimationType = null; // 'cast' or 'reel'
+        this.rodAnimationTarget = new THREE.Vector3();
+        this.rodAnimationDuration = 0.8; // seconds
         
         this.fishPool = [];
         this.activeFish = [];
@@ -53,6 +65,9 @@ class FishingLogic {
         if (!this.gameState.startFishing()) {
             return false;
         }
+        
+        // Start rod casting animation
+        this.startRodAnimation('cast', targetPoint);
         
         // Make fishing gear visible
         this.fishLine.visible = true;
@@ -120,6 +135,9 @@ class FishingLogic {
             this.endFishing(false);
             return false;
         }
+        
+        // Start rod reeling animation
+        this.startRodAnimation('reel', this.bobber.position);
         
         // Add score based on caught fish
         this.gameState.addScore(this.gameState.caughtFish.points);
@@ -220,6 +238,49 @@ class FishingLogic {
                 fish.direction.normalize();
             }
         });
+    }
+    
+    // New methods for rod animation
+    startRodAnimation(type, targetPoint) {
+        this.isRodAnimating = true;
+        this.rodAnimationTime = 0;
+        this.rodAnimationType = type;
+        this.rodAnimationTarget = targetPoint.clone();
+    }
+    
+    updateRodAnimations(deltaTime) {
+        if (!this.isRodAnimating) return;
+        
+        this.rodAnimationTime += deltaTime;
+        const progress = Math.min(this.rodAnimationTime / this.rodAnimationDuration, 1);
+        
+        if (this.rodAnimationType === 'cast') {
+            // Casting animation - rod moves forward and down
+            const castRotationX = this.originalRodRotation.x + Math.PI / 3 * Math.sin(progress * Math.PI);
+            this.fishingRod.rotation.x = castRotationX;
+            
+            // Return to original position when animation completes
+            if (progress >= 1) {
+                this.isRodAnimating = false;
+                setTimeout(() => {
+                    this.fishingRod.rotation.copy(this.originalRodRotation);
+                }, 500);
+            }
+        } else if (this.rodAnimationType === 'reel') {
+            // Reeling animation - rod pulls up then returns to position
+            const reelRotationX = this.originalRodRotation.x - Math.PI / 4 * Math.sin(progress * Math.PI);
+            this.fishingRod.rotation.x = reelRotationX;
+            
+            // Small side-to-side movement
+            const sideMovement = Math.sin(progress * Math.PI * 4) * 0.05;
+            this.fishingRod.rotation.z = sideMovement;
+            
+            // Return to original position when animation completes
+            if (progress >= 1) {
+                this.isRodAnimating = false;
+                this.fishingRod.rotation.copy(this.originalRodRotation);
+            }
+        }
     }
 }
 

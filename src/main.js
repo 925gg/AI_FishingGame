@@ -65,7 +65,7 @@ camera.rotation.x = Math.PI / 12; // Tilt camera down slightly to see the water
 // Initialize game state
 const gameState = new GameState();
 const ui = new UI(gameState);
-const fishingLogic = new FishingLogic(scene, water, gameState);
+const fishingLogic = new FishingLogic(scene, water, gameState, fishingRod);
 
 // Create raycaster for mouse interaction
 const raycaster = new THREE.Raycaster();
@@ -173,6 +173,9 @@ function animate(time) {
     
     // Update fish movement
     fishingLogic.updateFish(deltaTime);
+    
+    // Update fishing rod animations
+    fishingLogic.updateRodAnimations(deltaTime);
     
     // Update UI
     ui.update();
