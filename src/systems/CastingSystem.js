@@ -1,4 +1,4 @@
-import { SphereGeometry, Mesh, MeshPhongMaterial, Vector3 } from 'three';
+import { SphereGeometry, Mesh, MeshPhongMaterial, Vector3, Quaternion } from 'three';
 
 export class CastingSystem {
     constructor() {
@@ -8,8 +8,9 @@ export class CastingSystem {
         this.bobber = new Mesh(bobberGeometry, bobberMaterial);
         this.bobber.castShadow = true;
 
-        // Initialize position
+        // Initialize position and rotation
         this.startPosition = new Vector3(0, 1, 0);
+        this.startRotation = 0;
         this.bobber.position.copy(this.startPosition);
 
         // Casting variables
@@ -22,10 +23,11 @@ export class CastingSystem {
         this.velocity = new Vector3();
     }
 
-    setStartPosition(position) {
-        // Set the start position slightly above and behind the boat
+    setStartPosition(position, rotation) {
+        // Set the start position slightly above and in front of the boat
         this.startPosition.copy(position);
         this.startPosition.y += 1; // Raise it above the boat
+        this.startRotation = rotation;
         
         if (!this.isCasting) {
             this.bobber.position.copy(this.startPosition);
@@ -70,8 +72,10 @@ export class CastingSystem {
         if (this.isCasting) {
             this.isCasting = false;
             
-            // Calculate cast direction (forward from the start position)
-            const castDirection = new Vector3(0, 0.5, -1).normalize();
+            // Calculate cast direction based on boat's rotation
+            const castDirection = new Vector3(0, 0.5, -1);
+            const rotationQuat = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), this.startRotation);
+            castDirection.applyQuaternion(rotationQuat).normalize();
             
             // Set initial velocity based on cast power
             this.velocity.copy(castDirection).multiplyScalar(this.castPower);

@@ -63,6 +63,9 @@ export class GameScene {
         const deltaTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
 
+        // Always update water
+        this.waterSystem.update(deltaTime);
+
         // Update boat system
         this.boatSystem.update(deltaTime);
 
@@ -78,19 +81,22 @@ export class GameScene {
             
             // Disable orbit controls while driving
             this.controls.enabled = false;
+
+            // Hide bobber in driving mode
+            this.castingSystem.getBobber().visible = false;
         } else {
             // Enable orbit controls in fishing mode
             this.controls.enabled = true;
-        }
 
-        // Update fishing systems only when not in driving mode
-        if (!this.boatSystem.isDrivingMode()) {
-            // Update casting system with boat position
+            // Show bobber in fishing mode
+            this.castingSystem.getBobber().visible = true;
+
+            // Update casting system with boat position and rotation
             const boatPosition = this.boatSystem.getPosition();
-            this.castingSystem.setStartPosition(boatPosition);
+            const boatRotation = this.boatSystem.getRotation();
+            this.castingSystem.setStartPosition(boatPosition, boatRotation.y);
             
             this.castingSystem.update(deltaTime);
-            this.waterSystem.update(deltaTime);
 
             // Check for fish bite
             const bobberPosition = this.castingSystem.getBobberPosition();
@@ -130,10 +136,12 @@ export class GameScene {
     }
 
     onKeyDown(event) {
-        // Handle boat controls
-        this.boatSystem.handleKeyDown(event);
+        // Handle boat controls in driving mode
+        if (this.boatSystem.isDrivingMode()) {
+            this.boatSystem.handleKeyDown(event);
+        }
 
-        // Handle fishing controls only when not in driving mode
+        // Handle fishing controls in fishing mode
         if (!this.boatSystem.isDrivingMode()) {
             switch (event.code) {
                 case 'Space':
@@ -152,17 +160,25 @@ export class GameScene {
                     break;
             }
         }
+
+        // Handle mode switching
+        if (event.code === 'KeyF') {
+            this.boatSystem.setDrivingMode(!this.boatSystem.isDrivingMode());
+        }
     }
 
     onKeyUp(event) {
-        // Handle boat controls
-        this.boatSystem.handleKeyUp(event);
+        // Handle boat controls in driving mode
+        if (this.boatSystem.isDrivingMode()) {
+            this.boatSystem.handleKeyUp(event);
+        }
 
-        // Handle fishing controls only when not in driving mode
+        // Handle fishing controls in fishing mode
         if (!this.boatSystem.isDrivingMode()) {
             switch (event.code) {
                 case 'Space':
                     this.isCasting = false;
+                    this.castingSystem.completeCast();
                     break;
                 case 'KeyR':
                     this.isReeling = false;

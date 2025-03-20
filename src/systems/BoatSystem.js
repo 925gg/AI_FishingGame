@@ -3,13 +3,14 @@ import { BoxGeometry, Mesh, MeshPhongMaterial, Group, Vector3 } from 'three';
 export class BoatSystem {
     constructor() {
         this.boat = this.createBoat();
-        this.speed = 0.1;
+        this.speed = 0.2;
         this.rotationSpeed = 0.03;
         this.moveForward = false;
         this.moveBackward = false;
         this.turnLeft = false;
         this.turnRight = false;
-        this.isDriving = true; // Start in driving mode
+        this.isDriving = true;
+        this.direction = new Vector3(0, 0, -1);
     }
 
     createBoat() {
@@ -37,38 +38,29 @@ export class BoatSystem {
         return boatGroup;
     }
 
-    getBoat() {
-        return this.boat;
-    }
-
-    setDrivingMode(isDriving) {
-        this.isDriving = isDriving;
-    }
-
-    isDrivingMode() {
-        return this.isDriving;
-    }
-
     update(deltaTime) {
         if (!this.isDriving) return;
 
-        if (this.moveForward) {
-            this.boat.translateZ(-this.speed);
-        }
-        if (this.moveBackward) {
-            this.boat.translateZ(this.speed);
-        }
+        // Update rotation
         if (this.turnLeft) {
             this.boat.rotation.y += this.rotationSpeed;
         }
         if (this.turnRight) {
             this.boat.rotation.y -= this.rotationSpeed;
         }
+
+        // Calculate movement direction based on boat's rotation
+        const moveDirection = new Vector3();
+        if (this.moveForward || this.moveBackward) {
+            moveDirection.copy(this.direction);
+            moveDirection.applyAxisAngle(new Vector3(0, 1, 0), this.boat.rotation.y);
+            
+            const speedMultiplier = this.moveForward ? this.speed : -this.speed;
+            this.boat.position.add(moveDirection.multiplyScalar(speedMultiplier));
+        }
     }
 
     handleKeyDown(event) {
-        if (!this.isDriving) return;
-
         switch (event.code) {
             case 'KeyW':
                 this.moveForward = true;
@@ -100,10 +92,13 @@ export class BoatSystem {
                 this.turnRight = false;
                 break;
             case 'KeyF':
-                // Toggle between driving and fishing mode
                 this.isDriving = !this.isDriving;
                 break;
         }
+    }
+
+    getBoat() {
+        return this.boat;
     }
 
     getPosition() {
@@ -112,5 +107,13 @@ export class BoatSystem {
 
     getRotation() {
         return this.boat.rotation;
+    }
+
+    isDrivingMode() {
+        return this.isDriving;
+    }
+
+    setDrivingMode(isDriving) {
+        this.isDriving = isDriving;
     }
 } 
