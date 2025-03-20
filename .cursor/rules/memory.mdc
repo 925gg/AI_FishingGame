@@ -1,6 +1,11 @@
 ---
 description: 
 globs: 
+alwaysApply: false
+---
+---
+description: 
+globs: 
 alwaysApply: true
 ---
 
@@ -29,3 +34,4 @@ Follow these steps for each interaction:
      a) Create entities for recurring organizations, people, and significant events
      b) Connect them to the current entities using relations
      b) Store facts about them as observations
+     c) store milestones, design plans and implementation plans.
