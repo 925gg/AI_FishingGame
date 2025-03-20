@@ -119,8 +119,34 @@ function onMouseDown(event) {
 // Handle key press for reeling in fish
 function onKeyDown(event) {
     // Space bar to catch fish
-    if (event.code === 'Space' && gameState.isFishing && gameState.caughtFish) {
-        fishingLogic.reelIn();
+    if (event.code === 'Space' && gameState.isFishing) {
+        if (gameState.caughtFish) {
+            fishingLogic.reelIn();
+        } else {
+            // Penalty for pressing space when no fish has bitten
+            gameState.addScore(-20);
+            
+            // Visual feedback for penalty
+            const penaltyText = document.createElement('div');
+            penaltyText.textContent = '-20 points!';
+            penaltyText.style.position = 'absolute';
+            penaltyText.style.color = 'red';
+            penaltyText.style.fontSize = '24px';
+            penaltyText.style.fontWeight = 'bold';
+            penaltyText.style.left = '50%';
+            penaltyText.style.top = '50%';
+            penaltyText.style.transform = 'translate(-50%, -50%)';
+            penaltyText.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
+            document.body.appendChild(penaltyText);
+            
+            // Remove the text after a short delay
+            setTimeout(() => {
+                document.body.removeChild(penaltyText);
+            }, 1500);
+            
+            // End fishing after penalty
+            fishingLogic.endFishing(false);
+        }
     }
 }
 
