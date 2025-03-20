@@ -1,20 +1,15 @@
-import { GameScene } from './game/scene.js';
-import { CastingSystem } from './game/casting.js';
+import { GameScene } from './scenes/GameScene.js';
 
 // Initialize game
 const gameScene = new GameScene();
-const castingSystem = new CastingSystem(gameScene.scene);
 
 // Animation loop
-function animate() {
+function animate(currentTime) {
     requestAnimationFrame(animate);
     
     // Update scene
-    gameScene.update();
-    
-    // Render scene
-    gameScene.render();
+    gameScene.update(currentTime);
 }
 
 // Start the animation
-animate(); 
+animate(0); 
