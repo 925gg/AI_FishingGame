@@ -1,39 +1,19 @@
-import * as THREE from 'three';
+import { GameScene } from './game/scene.js';
+import { CastingSystem } from './game/casting.js';
 
-// Create scene, camera, and renderer
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-// Add a simple cube
-const geometry = new THREE.BoxGeometry();
-const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
-
-// Position camera
-camera.position.z = 5;
+// Initialize game
+const gameScene = new GameScene();
+const castingSystem = new CastingSystem(gameScene.scene);
 
 // Animation loop
 function animate() {
     requestAnimationFrame(animate);
-
-    // Rotate the cube
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.01;
-
-    renderer.render(scene, camera);
-}
-
-// Handle window resize
-window.addEventListener('resize', onWindowResize, false);
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    // Update scene
+    gameScene.update();
+    
+    // Render scene
+    gameScene.render();
 }
 
 // Start the animation
