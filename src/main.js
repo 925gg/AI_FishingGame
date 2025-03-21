@@ -13,6 +13,117 @@ document.body.appendChild(renderer.domElement);
 // Add sky background
 scene.background = new THREE.Color(0x87CEEB);
 
+// Add islands in the background
+function createIsland(x, z, size) {
+    // Island base
+    const islandGroup = new THREE.Group();
+    islandGroup.position.set(x, -2, z);
+    
+    // Island body (sand)
+    const islandGeometry = new THREE.ConeGeometry(size, size * 0.7, 5);
+    const sandMaterial = new THREE.MeshBasicMaterial({ color: 0xDEB887 });
+    const island = new THREE.Mesh(islandGeometry, sandMaterial);
+    island.rotation.x = Math.PI;
+    island.position.y = -size * 0.35;
+    islandGroup.add(island);
+    
+    // Add vegetation (palm trees for larger islands)
+    if (size > 3) {
+        // Palm tree trunk
+        const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.2, size * 0.8);
+        const trunkMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
+        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+        trunk.position.set(size * 0.3, 0, size * 0.3);
+        trunk.rotation.set(0.2, 0, 0.1);
+        islandGroup.add(trunk);
+        
+        // Palm tree leaves
+        for (let i = 0; i < 5; i++) {
+            const leafGeometry = new THREE.ConeGeometry(0.6, size * 0.6, 4);
+            const leafMaterial = new THREE.MeshBasicMaterial({ color: 0x2E8B57 });
+            const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+            
+            leaf.position.copy(trunk.position);
+            leaf.position.y += size * 0.4;
+            
+            // Position leaves in a radial pattern
+            const angle = (i / 5) * Math.PI * 2;
+            leaf.rotation.set(Math.PI / 3, 0, angle);
+            leaf.translateOnAxis(new THREE.Vector3(0, 1, 0), size * 0.25);
+            
+            islandGroup.add(leaf);
+        }
+    } else {
+        // Small vegetation for smaller islands
+        const bushGeometry = new THREE.SphereGeometry(size * 0.3, 8, 6);
+        const bushMaterial = new THREE.MeshBasicMaterial({ color: 0x228B22 });
+        const bush = new THREE.Mesh(bushGeometry, bushMaterial);
+        bush.position.y = size * 0.1;
+        islandGroup.add(bush);
+    }
+    
+    scene.add(islandGroup);
+}
+
+// Create islands at different locations
+createIsland(-20, -30, 5);  // Large island
+createIsland(25, -40, 7);   // Large island
+createIsland(-35, -20, 3);  // Medium island
+createIsland(15, -15, 2);   // Small island
+createIsland(30, -20, 2.5); // Medium island
+createIsland(-15, -40, 4);  // Medium island
+
+// Add clouds
+function createCloud(x, y, z) {
+    const cloudGroup = new THREE.Group();
+    cloudGroup.position.set(x, y, z);
+    
+    // Create multiple spheres for each cloud
+    const segments = 8;
+    const cloudMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xFFFFFF,
+        transparent: true,
+        opacity: 0.9
+    });
+    
+    // Main cloud parts
+    const sizes = [
+        { radius: 1.0, x: 0, y: 0, z: 0 },
+        { radius: 0.8, x: 1.1, y: 0.2, z: 0 },
+        { radius: 0.7, x: -1.0, y: 0, z: 0.2 },
+        { radius: 0.6, x: 0.5, y: -0.2, z: 0.5 },
+        { radius: 0.7, x: -0.5, y: 0.1, z: -0.5 }
+    ];
+    
+    sizes.forEach(size => {
+        const cloudPartGeometry = new THREE.SphereGeometry(size.radius, segments, segments);
+        const cloudPart = new THREE.Mesh(cloudPartGeometry, cloudMaterial);
+        cloudPart.position.set(size.x, size.y, size.z);
+        cloudGroup.add(cloudPart);
+    });
+    
+    scene.add(cloudGroup);
+    return cloudGroup;
+}
+
+// Create clouds at different locations
+const clouds = [
+    createCloud(-15, 10, -40),
+    createCloud(20, 12, -35),
+    createCloud(-25, 8, -30),
+    createCloud(10, 11, -45),
+    createCloud(30, 9, -50),
+    createCloud(-5, 13, -55)
+];
+
+// Animate clouds in the animation loop
+function updateClouds(deltaTime) {
+    clouds.forEach((cloud, index) => {
+        // Move clouds slowly from side to side
+        cloud.position.x += Math.sin((Date.now() / 10000) + index) * deltaTime * 0.3;
+    });
+}
+
 // Create water plane
 const waterGeometry = new THREE.PlaneGeometry(100, 100);
 const waterMaterial = new THREE.MeshBasicMaterial({ 
@@ -292,6 +403,9 @@ function animate(time) {
     
     // Update fishing rod animations
     fishingLogic.updateRodAnimations(deltaTime);
+    
+    // Update clouds animation
+    updateClouds(deltaTime);
     
     // Update UI
     ui.update();
