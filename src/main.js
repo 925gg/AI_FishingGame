@@ -19,47 +19,165 @@ function createIsland(x, z, size) {
     const islandGroup = new THREE.Group();
     islandGroup.position.set(x, -2, z);
     
-    // Island body (sand)
-    const islandGeometry = new THREE.ConeGeometry(size, size * 0.7, 5);
+    // Island body with more vertices for more natural shape
+    const islandGeometry = new THREE.ConeGeometry(size, size * 0.7, 8);
     const sandMaterial = new THREE.MeshBasicMaterial({ color: 0xDEB887 });
     const island = new THREE.Mesh(islandGeometry, sandMaterial);
     island.rotation.x = Math.PI;
     island.position.y = -size * 0.35;
+    
+    // Add slight random rotation for more natural appearance
+    island.rotation.z = Math.random() * 0.3;
     islandGroup.add(island);
+    
+    // Add sandy beach ring around the island
+    const beachGeometry = new THREE.TorusGeometry(size * 0.9, size * 0.2, 8, 12);
+    const beachMaterial = new THREE.MeshBasicMaterial({ color: 0xF5DEB3 });
+    const beach = new THREE.Mesh(beachGeometry, beachMaterial);
+    beach.rotation.x = Math.PI / 2;
+    beach.position.y = -size * 0.1;
+    islandGroup.add(beach);
     
     // Add vegetation (palm trees for larger islands)
     if (size > 3) {
-        // Palm tree trunk
-        const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.2, size * 0.8);
-        const trunkMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
-        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-        trunk.position.set(size * 0.3, 0, size * 0.3);
-        trunk.rotation.set(0.2, 0, 0.1);
-        islandGroup.add(trunk);
+        // Add multiple palm trees
+        const treeCount = Math.floor(size * 0.7);
         
-        // Palm tree leaves
-        for (let i = 0; i < 5; i++) {
-            const leafGeometry = new THREE.ConeGeometry(0.6, size * 0.6, 4);
-            const leafMaterial = new THREE.MeshBasicMaterial({ color: 0x2E8B57 });
-            const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+        for (let t = 0; t < treeCount; t++) {
+            // Position the trees randomly on the island
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * (size * 0.6);
+            const treeX = Math.cos(angle) * distance;
+            const treeZ = Math.sin(angle) * distance;
             
-            leaf.position.copy(trunk.position);
-            leaf.position.y += size * 0.4;
+            // Palm tree trunk with slight lean
+            const trunkHeight = size * 0.8 + (Math.random() * size * 0.3);
+            const trunkGeometry = new THREE.CylinderGeometry(0.15, 0.2, trunkHeight);
+            const trunkMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.set(treeX, 0, treeZ);
             
-            // Position leaves in a radial pattern
-            const angle = (i / 5) * Math.PI * 2;
-            leaf.rotation.set(Math.PI / 3, 0, angle);
-            leaf.translateOnAxis(new THREE.Vector3(0, 1, 0), size * 0.25);
+            // Random trunk lean
+            const leanX = (Math.random() - 0.5) * 0.3;
+            const leanZ = (Math.random() - 0.5) * 0.3;
+            trunk.rotation.set(leanX, 0, leanZ);
+            islandGroup.add(trunk);
             
-            islandGroup.add(leaf);
+            // Palm tree leaves
+            const leafCount = 5 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < leafCount; i++) {
+                const leafGeometry = new THREE.ConeGeometry(0.6, size * 0.6, 4);
+                
+                // Vary leaf colors slightly
+                const hueShift = (Math.random() - 0.5) * 0.1;
+                const leafColor = new THREE.Color(0x2E8B57).offsetHSL(hueShift, 0.1, 0);
+                const leafMaterial = new THREE.MeshBasicMaterial({ color: leafColor });
+                
+                const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+                
+                // Fix leaf position - position relative to trunk top
+                leaf.position.copy(trunk.position);
+                leaf.position.y += trunkHeight * 0.5; // Lower position from 0.9 to 0.5
+                
+                // Position leaves in a radial pattern with some randomness
+                const angle = (i / leafCount) * Math.PI * 2;
+                const tilt = Math.PI / 3 + (Math.random() * 0.2);
+                leaf.rotation.set(tilt, 0, angle);
+                leaf.translateOnAxis(new THREE.Vector3(0, 1, 0), size * 0.25);
+                
+                islandGroup.add(leaf);
+            }
+        }
+        
+        // Add some rocks
+        const rockCount = Math.floor(Math.random() * 4) + 2;
+        for (let r = 0; r < rockCount; r++) {
+            const rockSize = size * 0.15 * (Math.random() * 0.5 + 0.5);
+            const rockGeometry = new THREE.DodecahedronGeometry(rockSize, 0);
+            const rockMaterial = new THREE.MeshBasicMaterial({ color: 0x808080 });
+            const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+            
+            // Position rocks around the shore
+            const angle = Math.random() * Math.PI * 2;
+            const distance = size * 0.7 + (Math.random() * size * 0.2);
+            rock.position.set(
+                Math.cos(angle) * distance,
+                -size * 0.1 + (Math.random() * rockSize),
+                Math.sin(angle) * distance
+            );
+            
+            // Random rotation
+            rock.rotation.set(
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                Math.random() * Math.PI
+            );
+            
+            islandGroup.add(rock);
         }
     } else {
-        // Small vegetation for smaller islands
-        const bushGeometry = new THREE.SphereGeometry(size * 0.3, 8, 6);
-        const bushMaterial = new THREE.MeshBasicMaterial({ color: 0x228B22 });
-        const bush = new THREE.Mesh(bushGeometry, bushMaterial);
-        bush.position.y = size * 0.1;
-        islandGroup.add(bush);
+        // Small island with varied vegetation
+        const bushCount = Math.floor(Math.random() * 3) + 2;
+        for (let b = 0; b < bushCount; b++) {
+            // Vary the bush shapes
+            const bushType = Math.random();
+            let bushGeometry;
+            
+            if (bushType < 0.4) {
+                // Sphere bush
+                bushGeometry = new THREE.SphereGeometry(size * 0.25 * (Math.random() * 0.4 + 0.8), 8, 6);
+            } else if (bushType < 0.7) {
+                // Cone bush
+                bushGeometry = new THREE.ConeGeometry(size * 0.2, size * 0.4, 6);
+            } else {
+                // Dodecahedron bush (more angular)
+                bushGeometry = new THREE.DodecahedronGeometry(size * 0.2, 0);
+            }
+            
+            // Vary green colors
+            const hueShift = (Math.random() - 0.5) * 0.2;
+            const bushColor = new THREE.Color(0x228B22).offsetHSL(hueShift, 0.1, (Math.random() - 0.5) * 0.1);
+            const bushMaterial = new THREE.MeshBasicMaterial({ color: bushColor });
+            const bush = new THREE.Mesh(bushGeometry, bushMaterial);
+            
+            // Position bushes randomly on small island
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * (size * 0.5);
+            bush.position.set(
+                Math.cos(angle) * distance,
+                size * 0.1 + (Math.random() * size * 0.1),
+                Math.sin(angle) * distance
+            );
+            
+            // Random rotation
+            bush.rotation.set(0, Math.random() * Math.PI, 0);
+            
+            islandGroup.add(bush);
+        }
+        
+        // Add a small rock
+        if (Math.random() > 0.5) {
+            const rockGeometry = new THREE.DodecahedronGeometry(size * 0.15, 0);
+            const rockMaterial = new THREE.MeshBasicMaterial({ color: 0x808080 });
+            const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+            
+            // Position rock near edge
+            const angle = Math.random() * Math.PI * 2;
+            rock.position.set(
+                Math.cos(angle) * (size * 0.6),
+                -size * 0.05,
+                Math.sin(angle) * (size * 0.6)
+            );
+            
+            // Random rotation
+            rock.rotation.set(
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                Math.random() * Math.PI
+            );
+            
+            islandGroup.add(rock);
+        }
     }
     
     scene.add(islandGroup);
