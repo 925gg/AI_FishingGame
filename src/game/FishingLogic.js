@@ -74,12 +74,17 @@ class FishingLogic {
         this.fishHook.visible = true;
         this.bobber.visible = true;
         
+        // Get rod tip position from parent object
+        const rodTip = new THREE.Vector3(0, -0.75, 0); // Rod tip in local space
+        const rodTipWorld = rodTip.clone();
+        this.fishingRod.localToWorld(rodTipWorld); // Convert to world position
+        
         // Position fishing line
-        this.fishLine.position.copy(originPoint);
+        this.fishLine.position.copy(rodTipWorld);
         this.fishLine.lookAt(targetPoint);
         
         // Adjust fishing line length and position
-        const distance = originPoint.distanceTo(targetPoint);
+        const distance = rodTipWorld.distanceTo(targetPoint);
         this.fishLine.scale.set(1, distance / 10, 1);
         this.fishLine.position.lerp(targetPoint, 0.5);
         

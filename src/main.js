@@ -32,8 +32,36 @@ const dock = new THREE.Mesh(dockGeometry, dockMaterial);
 dock.position.set(0, -1.5, -2); // Position dock below and closer to camera
 scene.add(dock);
 
-// Add dock posts
+// Add dock planks for more detail
+const plankCount = 8;
+const plankWidth = 3.0 / plankCount;
+for (let i = 0; i < plankCount; i++) {
+    const plankGeometry = new THREE.BoxGeometry(plankWidth - 0.05, 0.22, 4);
+    // Slight color variation for each plank
+    const woodColor = new THREE.Color(0x8B4513).offsetHSL(0, 0, Math.random() * 0.1 - 0.05);
+    const plankMaterial = new THREE.MeshBasicMaterial({ color: woodColor });
+    const plank = new THREE.Mesh(plankGeometry, plankMaterial);
+    plank.position.set(-1.5 + plankWidth * (i + 0.5), -1.4, -2);
+    scene.add(plank);
+    
+    // Add nail details at the ends of planks
+    for (let j = 0; j < 2; j++) {
+        const nailGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.05, 6);
+        const nailMaterial = new THREE.MeshBasicMaterial({ color: 0x696969 });
+        const nail = new THREE.Mesh(nailGeometry, nailMaterial);
+        nail.rotation.x = Math.PI / 2;
+        nail.position.set(
+            plank.position.x,
+            -1.3,
+            -2 + (j === 0 ? -1.8 : 1.8)
+        );
+        scene.add(nail);
+    }
+}
+
+// Add dock posts with more detail
 for (let i = 0; i < 4; i++) {
+    // Main post
     const postGeometry = new THREE.CylinderGeometry(0.1, 0.1, 2);
     const postMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
     const post = new THREE.Mesh(postGeometry, postMaterial);
@@ -44,18 +72,113 @@ for (let i = 0; i < 4; i++) {
     
     post.position.set(xPos, -1.5, zPos);
     scene.add(post);
+    
+    // Add post rings for detail
+    for (let j = 0; j < 2; j++) {
+        const ringGeometry = new THREE.TorusGeometry(0.12, 0.02, 8, 16);
+        const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x5D4037 });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(xPos, -1.5 + (j === 0 ? -0.7 : 0.7), zPos);
+        scene.add(ring);
+    }
 }
 
-// Create a fishing rod (cylinder)
-const rodGeometry = new THREE.CylinderGeometry(0.01, 0.02, 1.5, 32);
+// Create a more detailed fishing rod
+// Create parent object for all rod components
+const rodParent = new THREE.Object3D();
+rodParent.position.set(0.3, -0.5, -0.7);
+rodParent.rotation.set(Math.PI / 6, 0, -Math.PI / 24); // Slight adjustment to rotation
+rodParent.name = 'fishing_rod_parent';
+scene.add(rodParent);
+
+// Main rod body
+const rodGeometry = new THREE.CylinderGeometry(0.01, 0.02, 1.5, 12);
 const rodMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
 const fishingRod = new THREE.Mesh(rodGeometry, rodMaterial);
 
-// Position the rod in first-person view
-fishingRod.position.set(0.3, -0.5, -0.7);
-fishingRod.rotation.set(Math.PI / 6, 0, 0); // Angle the rod forward slightly
+// Position the rod in first-person view - now relative to parent
+fishingRod.position.set(0, 0, 0);
+fishingRod.rotation.set(0, 0, 0);
+fishingRod.name = 'fishing_rod_main';
 
-scene.add(fishingRod);
+rodParent.add(fishingRod);
+
+// Add rod handle (grip)
+const handleGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.3, 12);
+const handleMaterial = new THREE.MeshBasicMaterial({ color: 0x2F4F4F });
+const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+
+// Position at the bottom of the rod
+// Adjust position to connect with rod bottom
+const rodBottomOffset = new THREE.Vector3(0, -fishingRod.geometry.parameters.height / 2, 0);
+handle.position.copy(rodBottomOffset);
+handle.name = 'rod_handle';
+rodParent.add(handle);
+
+// Add fishing reel
+const reelBodyGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.1, 16, 1, false, 0, Math.PI);
+const reelMaterial = new THREE.MeshBasicMaterial({ color: 0x696969 });
+const reelBody = new THREE.Mesh(reelBodyGeometry, reelMaterial);
+
+// Position the reel on the rod
+// Calculate position halfway up from the handle
+const reelOffset = new THREE.Vector3(0, -fishingRod.geometry.parameters.height / 4, 0);
+// Position the reel to the side of the rod
+const sideOffset = new THREE.Vector3(0.05, 0, 0);
+reelBody.position.copy(reelOffset).add(sideOffset);
+
+// Orient the reel perpendicular to the rod
+reelBody.rotation.set(0, 0, Math.PI / 2);
+reelBody.name = 'rod_reel_body';
+rodParent.add(reelBody);
+
+// Add reel handle
+const reelHandleBaseGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.04, 8);
+const reelHandleBase = new THREE.Mesh(reelHandleBaseGeometry, reelMaterial);
+reelHandleBase.position.copy(reelBody.position);
+// Position handle on the outer edge of the reel
+const handleOffset = new THREE.Vector3(0, 0, 0.07);
+handleOffset.applyQuaternion(reelBody.quaternion);
+reelHandleBase.position.add(handleOffset);
+
+reelHandleBase.rotation.copy(reelBody.rotation);
+reelHandleBase.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+reelHandleBase.name = 'rod_reel_handle';
+rodParent.add(reelHandleBase);
+
+// Add knob to the handle
+const reelKnobGeometry = new THREE.SphereGeometry(0.02, 8, 8);
+const reelKnobMaterial = new THREE.MeshBasicMaterial({ color: 0xA0A0A0 });
+const reelKnob = new THREE.Mesh(reelKnobGeometry, reelKnobMaterial);
+reelKnob.position.copy(reelHandleBase.position);
+// Position knob at the end of the handle
+const knobOffset = new THREE.Vector3(0, 0, 0.04);
+knobOffset.applyQuaternion(reelHandleBase.quaternion);
+reelKnob.position.add(knobOffset);
+reelKnob.name = 'rod_reel_knob';
+rodParent.add(reelKnob);
+
+// Add line guides to the rod
+const lineGuidePositions = [0.2, -0.1, -0.4, -0.6];
+lineGuidePositions.forEach((yOffset, index) => {
+    // Create a small ring for the line guide
+    const size = 0.02 - (index * 0.003); // Guides get slightly smaller toward the tip
+    const guideGeometry = new THREE.TorusGeometry(size, 0.005, 8, 8);
+    const guideMaterial = new THREE.MeshBasicMaterial({ color: 0x2F4F4F });
+    const guide = new THREE.Mesh(guideGeometry, guideMaterial);
+    
+    // Position the guide on the rod
+    // Calculate position along the rod
+    const guideOffset = new THREE.Vector3(0, yOffset, 0);
+    guide.position.copy(guideOffset);
+    
+    // Orient the guides perpendicular to the rod direction
+    guide.rotation.set(0, 0, Math.PI / 2);
+    
+    guide.name = `rod_guide_${index}`;
+    rodParent.add(guide);
+});
 
 // Position camera
 camera.position.y = -0.5;
@@ -65,7 +188,7 @@ camera.rotation.x = Math.PI / 12; // Tilt camera down slightly to see the water
 // Initialize game state
 const gameState = new GameState();
 const ui = new UI(gameState);
-const fishingLogic = new FishingLogic(scene, water, gameState, fishingRod);
+const fishingLogic = new FishingLogic(scene, water, gameState, rodParent);
 
 // Create raycaster for mouse interaction
 const raycaster = new THREE.Raycaster();
@@ -104,15 +227,8 @@ function onMouseDown(event) {
         // Get intersection point
         const intersectPoint = intersects[0].point;
         
-        // Calculate rod tip position (for line origin)
-        const rodTipPosition = new THREE.Vector3(
-            fishingRod.position.x,
-            fishingRod.position.y - fishingRod.geometry.parameters.height / 2,
-            fishingRod.position.z
-        );
-        
-        // Cast the line
-        fishingLogic.castLine(rodTipPosition, intersectPoint);
+        // Cast the line to the intersection point
+        fishingLogic.castLine(null, intersectPoint);
     }
 }
 
