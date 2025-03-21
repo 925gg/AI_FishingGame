@@ -46,32 +46,105 @@ const FishTypes = [
 
 // Helper function to create a fish mesh based on fish type
 function createFishMesh(fishType) {
-    // Create the fish body
+    // Create a group to hold the fish parts
+    const fishGroup = new THREE.Group();
+    
+    // Create the fish body - main part with slightly rounded edges
     const bodyGeometry = new THREE.BoxGeometry(
-        fishType.size.length,
+        fishType.size.length * 0.7,
         fishType.size.height,
         fishType.size.width
     );
     const bodyMaterial = new THREE.MeshBasicMaterial({ color: fishType.color });
     const fishBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    
-    // Create the fish tail
-    const tailGeometry = new THREE.ConeGeometry(
-        fishType.size.height / 2,
-        fishType.size.length / 2,
-        4
-    );
-    const tailMaterial = new THREE.MeshBasicMaterial({ color: fishType.color });
-    const fishTail = new THREE.Mesh(tailGeometry, tailMaterial);
-    
-    // Position the tail at the back of the body
-    fishTail.position.x = -fishType.size.length / 2 - fishType.size.length / 4; 
-    fishTail.rotation.z = Math.PI / 2;
-    
-    // Create a group to hold the fish parts
-    const fishGroup = new THREE.Group();
     fishGroup.add(fishBody);
+    
+    // Create the fish head - tapered front
+    const headGeometry = new THREE.ConeGeometry(
+        fishType.size.height * 0.5,
+        fishType.size.length * 0.4,
+        8
+    );
+    // Lighter version of the fish color for the head
+    const headColor = new THREE.Color(fishType.color);
+    headColor.r = Math.min(1, headColor.r * 1.3);
+    headColor.g = Math.min(1, headColor.g * 1.3);
+    headColor.b = Math.min(1, headColor.b * 1.3);
+    
+    const headMaterial = new THREE.MeshBasicMaterial({ color: headColor });
+    const fishHead = new THREE.Mesh(headGeometry, headMaterial);
+    fishHead.position.x = fishType.size.length * 0.5; // Position at front of body
+    fishHead.rotation.z = -Math.PI / 2; // Rotate to point forward
+    fishGroup.add(fishHead);
+    
+    // Create the fish tail connector - wider and flatter
+    const tailGeometry = new THREE.BoxGeometry(
+        fishType.size.length * 0.2,
+        fishType.size.height * 0.8,
+        fishType.size.width * 0.1
+    );
+    // Slightly darker version of the fish color for the tail
+    const tailColor = new THREE.Color(fishType.color);
+    tailColor.r = Math.max(0, tailColor.r * 0.9);
+    tailColor.g = Math.max(0, tailColor.g * 0.9);
+    tailColor.b = Math.max(0, tailColor.b * 0.9);
+    
+    const tailMaterial = new THREE.MeshBasicMaterial({ color: tailColor });
+    const fishTail = new THREE.Mesh(tailGeometry, tailMaterial);
+    fishTail.position.x = -fishType.size.length * 0.4; // Position at back of body
     fishGroup.add(fishTail);
+    
+    // Create tail fin - more like the image with a larger triangular shape
+    const tailFinGeometry = new THREE.BufferGeometry();
+    const tailFinVertices = new Float32Array([
+        // Triangle shape resembling the reference image
+        -fishType.size.length * 0.5, 0, 0,
+        -fishType.size.length * 0.8, fishType.size.height * 0.5, 0,
+        -fishType.size.length * 0.8, -fishType.size.height * 0.5, 0,
+    ]);
+    tailFinGeometry.setAttribute('position', new THREE.BufferAttribute(tailFinVertices, 3));
+    const tailFinMaterial = new THREE.MeshBasicMaterial({ color: fishType.color, side: THREE.DoubleSide });
+    const tailFin = new THREE.Mesh(tailFinGeometry, tailFinMaterial);
+    fishGroup.add(tailFin);
+    
+    // Add top fin - more pronounced
+    const topFinGeometry = new THREE.BufferGeometry();
+    const topFinVertices = new Float32Array([
+        // Triangle 1 - matches the dorsal fin in the image
+        0, fishType.size.height * 0.5, 0,
+        fishType.size.length * 0.2, fishType.size.height * 0.9, 0,
+        -fishType.size.length * 0.2, fishType.size.height * 0.9, 0,
+    ]);
+    topFinGeometry.setAttribute('position', new THREE.BufferAttribute(topFinVertices, 3));
+    const topFinMaterial = new THREE.MeshBasicMaterial({ color: fishType.color, side: THREE.DoubleSide });
+    const topFin = new THREE.Mesh(topFinGeometry, topFinMaterial);
+    fishGroup.add(topFin);
+    
+    // Add side fins (pectoral fins) - small triangular shapes on both sides
+    const sideFin1Geometry = new THREE.BufferGeometry();
+    const sideFin1Vertices = new Float32Array([
+        // Left side fin
+        fishType.size.length * 0.2, 0, fishType.size.width * 0.5,
+        fishType.size.length * 0.1, -fishType.size.height * 0.3, fishType.size.width * 0.7,
+        fishType.size.length * 0.3, -fishType.size.height * 0.3, fishType.size.width * 0.7,
+    ]);
+    sideFin1Geometry.setAttribute('position', new THREE.BufferAttribute(sideFin1Vertices, 3));
+    const sideFin1Material = new THREE.MeshBasicMaterial({ color: fishType.color, side: THREE.DoubleSide });
+    const sideFin1 = new THREE.Mesh(sideFin1Geometry, sideFin1Material);
+    fishGroup.add(sideFin1);
+    
+    // Mirror for the right side fin
+    const sideFin2Geometry = new THREE.BufferGeometry();
+    const sideFin2Vertices = new Float32Array([
+        // Right side fin
+        fishType.size.length * 0.2, 0, -fishType.size.width * 0.5,
+        fishType.size.length * 0.1, -fishType.size.height * 0.3, -fishType.size.width * 0.7,
+        fishType.size.length * 0.3, -fishType.size.height * 0.3, -fishType.size.width * 0.7,
+    ]);
+    sideFin2Geometry.setAttribute('position', new THREE.BufferAttribute(sideFin2Vertices, 3));
+    const sideFin2Material = new THREE.MeshBasicMaterial({ color: fishType.color, side: THREE.DoubleSide });
+    const sideFin2 = new THREE.Mesh(sideFin2Geometry, sideFin2Material);
+    fishGroup.add(sideFin2);
     
     return fishGroup;
 }
