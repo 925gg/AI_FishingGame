@@ -33,9 +33,9 @@ class GameState {
         this.leaderboard.push(entry);
         // Sort by score in descending order
         this.leaderboard.sort((a, b) => b.score - a.score);
-        // Keep only top 20 scores
-        if (this.leaderboard.length > 20) {
-            this.leaderboard = this.leaderboard.slice(0, 20);
+        // Keep only top 10 scores
+        if (this.leaderboard.length > 10) {
+            this.leaderboard = this.leaderboard.slice(0, 10);
         }
         
         localStorage.setItem('fishingGameLeaderboard', JSON.stringify(this.leaderboard));
@@ -44,7 +44,7 @@ class GameState {
     }
 
     isHighScore(score) {
-        return this.leaderboard.length < 20 || score > this.leaderboard[this.leaderboard.length - 1].score;
+        return this.leaderboard.length < 10 || score > this.leaderboard[this.leaderboard.length - 1].score;
     }
 
     getTopScores() {
