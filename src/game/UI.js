@@ -8,9 +8,14 @@ class UI {
         this.startButton = null;
         this.messageElement = null;
         this.fishInfoElement = null;
+        this.leaderboardElement = null;
+        this.nameInputContainer = null;
+        this.nameInput = null;
+        this.saveButton = null;
         
         // Create UI elements
         this.initUI();
+        this.updateLeaderboard();
     }
     
     initUI() {
@@ -29,6 +34,67 @@ class UI {
         this.container.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
         this.container.style.minWidth = '250px';
         document.body.appendChild(this.container);
+        
+        // Leaderboard
+        this.leaderboardElement = document.createElement('div');
+        this.leaderboardElement.style.marginBottom = '20px';
+        this.leaderboardElement.style.maxHeight = '200px';
+        this.leaderboardElement.style.overflowY = 'auto';
+        this.leaderboardElement.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+        this.leaderboardElement.style.borderRadius = '5px';
+        this.leaderboardElement.style.padding = '10px';
+        this.container.appendChild(this.leaderboardElement);
+
+        // Name input container
+        this.nameInputContainer = document.createElement('div');
+        this.nameInputContainer.style.display = 'none';
+        this.nameInputContainer.style.marginBottom = '15px';
+        this.nameInputContainer.style.textAlign = 'center';
+        
+        const nameInputTitle = document.createElement('p');
+        nameInputTitle.style.margin = '0 0 10px 0';
+        nameInputTitle.style.fontSize = '18px';
+        nameInputTitle.textContent = 'New High Score! Enter your name:';
+        this.nameInputContainer.appendChild(nameInputTitle);
+        
+        this.nameInput = document.createElement('input');
+        this.nameInput.type = 'text';
+        this.nameInput.maxLength = 20;
+        this.nameInput.style.padding = '8px';
+        this.nameInput.style.fontSize = '16px';
+        this.nameInput.style.border = 'none';
+        this.nameInput.style.borderRadius = '4px';
+        this.nameInput.style.background = 'rgba(255, 255, 255, 0.9)';
+        this.nameInput.style.width = '200px';
+        this.nameInput.style.marginRight = '8px';
+        this.nameInputContainer.appendChild(this.nameInput);
+        
+        this.saveButton = document.createElement('button');
+        this.saveButton.textContent = 'Save';
+        this.saveButton.style.padding = '8px 16px';
+        this.saveButton.style.fontSize = '16px';
+        this.saveButton.style.border = 'none';
+        this.saveButton.style.borderRadius = '4px';
+        this.saveButton.style.background = '#4CAF50';
+        this.saveButton.style.color = 'white';
+        this.saveButton.style.cursor = 'pointer';
+        this.nameInputContainer.appendChild(this.saveButton);
+        
+        // Set up event listeners
+        const handleSave = () => {
+            const name = this.nameInput.value.trim() || 'Anonymous';
+            this.gameState.saveScore(name);
+            this.nameInputContainer.style.display = 'none';
+            this.updateLeaderboard();
+            this.nameInput.value = ''; // Clear input for next time
+        };
+        
+        this.saveButton.onclick = handleSave;
+        this.nameInput.onkeypress = (e) => {
+            if (e.key === 'Enter') handleSave();
+        };
+        
+        this.container.appendChild(this.nameInputContainer);
         
         // Score display
         this.scoreElement = document.createElement('div');
@@ -113,6 +179,54 @@ class UI {
         this.container.appendChild(instructions);
     }
     
+    updateLeaderboard() {
+        const scores = this.gameState.getTopScores();
+        this.leaderboardElement.innerHTML = '<h3 style="margin: 0 0 10px 0; text-align: center;">🏆 Top Scores 🏆</h3>';
+        
+        if (scores.length === 0) {
+            this.leaderboardElement.innerHTML += '<p style="text-align: center; opacity: 0.8;">No scores yet. Be the first!</p>';
+            return;
+        }
+
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.fontSize = '14px';
+
+        scores.forEach((score, index) => {
+            const row = table.insertRow();
+            row.style.borderBottom = '1px solid rgba(255, 255, 255, 0.1)';
+            
+            // Rank cell
+            const rankCell = row.insertCell();
+            rankCell.textContent = `${index + 1}.`;
+            rankCell.style.padding = '4px';
+            rankCell.style.width = '30px';
+            
+            // Name cell
+            const nameCell = row.insertCell();
+            nameCell.textContent = score.name;
+            nameCell.style.padding = '4px';
+            
+            // Score cell
+            const scoreCell = row.insertCell();
+            scoreCell.textContent = score.score;
+            scoreCell.style.padding = '4px';
+            scoreCell.style.textAlign = 'right';
+            scoreCell.style.fontWeight = 'bold';
+            
+            // Date cell
+            const dateCell = row.insertCell();
+            dateCell.textContent = score.date;
+            dateCell.style.padding = '4px';
+            dateCell.style.fontSize = '12px';
+            dateCell.style.opacity = '0.8';
+            dateCell.style.textAlign = 'right';
+        });
+
+        this.leaderboardElement.appendChild(table);
+    }
+
     update() {
         // Update score display
         this.scoreElement.textContent = `Score: ${this.gameState.score}`;
@@ -163,6 +277,14 @@ class UI {
                 this.messageElement.textContent = 'Click on water to cast your line!';
                 this.messageElement.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
             }
+        }
+
+        // Handle name input visibility
+        if (this.gameState.isEnteringName) {
+            this.nameInputContainer.style.display = 'block';
+            this.nameInput.focus();
+        } else {
+            this.nameInputContainer.style.display = 'none';
         }
     }
     
