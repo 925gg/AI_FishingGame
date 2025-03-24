@@ -1,6 +1,7 @@
 class UI {
     constructor(gameState) {
         this.gameState = gameState;
+        this.audioManager = gameState.audioManager; // Assuming AudioManager instance is available in gameState
         
         this.container = null;
         this.scoreElement = null;
@@ -143,22 +144,25 @@ class UI {
         this.startButton.style.backgroundColor = '#4CAF50';
         this.startButton.style.color = 'white';
         this.startButton.style.border = 'none';
-        this.startButton.style.borderRadius = '8px';
+        this.startButton.style.borderRadius = '5px';
         this.startButton.style.cursor = 'pointer';
-        this.startButton.style.width = '100%';
-        this.startButton.style.fontWeight = 'bold';
-        this.startButton.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.3)';
-        this.startButton.style.transition = 'all 0.2s ease-in-out';
-        
-        // Add hover effect
-        this.startButton.onmouseover = () => {
-            this.startButton.style.backgroundColor = '#3e8e41';
-            this.startButton.style.transform = 'scale(1.05)';
-        };
-        this.startButton.onmouseout = () => {
-            this.startButton.style.backgroundColor = '#4CAF50';
-            this.startButton.style.transform = 'scale(1)';
-        };
+        this.startButton.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        this.startButton.addEventListener('click', () => {
+            // Resume audio context when game starts
+            this.audioManager.resumeAudioContext();
+            
+            if (this.gameState.isGameActive) return;
+            
+            this.gameState.startGame();
+            this.startButton.style.display = 'none';
+            this.messageElement.textContent = 'Click to cast your line!';
+            
+            // Start the countdown
+            this.showCountdown(3, () => {
+                this.updateTimer();
+                this.timerInterval = setInterval(() => this.updateTimer(), 1000);
+            });
+        });
         
         this.container.appendChild(this.startButton);
         
@@ -177,6 +181,63 @@ class UI {
             <p>⭐ Perfect catches in the center give bonus points!</p>
         `;
         this.container.appendChild(instructions);
+
+        // Add music controls
+        const musicControls = document.createElement('div');
+        musicControls.style.position = 'absolute';
+        musicControls.style.top = '15px';
+        musicControls.style.right = '15px';
+        musicControls.style.padding = '10px';
+        musicControls.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        musicControls.style.borderRadius = '10px';
+        musicControls.style.display = 'flex';
+        musicControls.style.alignItems = 'center';
+        musicControls.style.gap = '10px';
+        musicControls.style.backdropFilter = 'blur(4px)';
+
+        // Music toggle button
+        const musicButton = document.createElement('button');
+        musicButton.innerHTML = '🎵';
+        musicButton.style.padding = '8px';
+        musicButton.style.fontSize = '20px';
+        musicButton.style.backgroundColor = '#4CAF50';
+        musicButton.style.color = 'white';
+        musicButton.style.border = 'none';
+        musicButton.style.borderRadius = '5px';
+        musicButton.style.cursor = 'pointer';
+        musicButton.style.width = '40px';
+        musicButton.style.height = '40px';
+        musicButton.style.display = 'flex';
+        musicButton.style.alignItems = 'center';
+        musicButton.style.justifyContent = 'center';
+        musicButton.title = 'Toggle Background Music';
+
+        // Volume slider
+        const volumeSlider = document.createElement('input');
+        volumeSlider.type = 'range';
+        volumeSlider.min = '0';
+        volumeSlider.max = '100';
+        volumeSlider.value = '80'; // Updated from 10 to 80 (80%)
+        volumeSlider.style.width = '100px';
+        volumeSlider.title = 'Music Volume';
+
+        // Event listeners
+        musicButton.addEventListener('click', () => {
+            // Resume audio context first
+            this.audioManager.resumeAudioContext();
+            const isPlaying = this.audioManager.toggleMusic();
+            musicButton.style.backgroundColor = isPlaying ? '#4CAF50' : '#F44336';
+        });
+
+        volumeSlider.addEventListener('input', (e) => {
+            // Resume audio context first
+            this.audioManager.resumeAudioContext();
+            this.audioManager.setMusicVolume(e.target.value / 100);
+        });
+
+        musicControls.appendChild(musicButton);
+        musicControls.appendChild(volumeSlider);
+        document.body.appendChild(musicControls);
     }
     
     updateLeaderboard() {

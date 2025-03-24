@@ -1,3 +1,5 @@
+import AudioManager from './AudioManager.js';
+
 class GameState {
     constructor() {
         this.score = 0;
@@ -8,6 +10,12 @@ class GameState {
         this.caughtFish = null;
         this.leaderboard = this.loadLeaderboard();
         this.isEnteringName = false;
+        this.audioManager = new AudioManager(); // Initialize AudioManager
+        
+        // Start background music
+        // Note: Modern browsers require user interaction before playing audio
+        // We'll start it here, and it will begin playing as soon as the user interacts
+        this.audioManager.startBackgroundMusic();
     }
 
     loadLeaderboard() {

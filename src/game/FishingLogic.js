@@ -9,7 +9,7 @@ class FishingLogic {
         this.waterSurface = waterSurface;
         this.gameState = gameState;
         this.fishingRod = fishingRod;
-        this.audioManager = new AudioManager();
+        this.audioManager = gameState.audioManager;
         
         // Store original rod position and rotation for animations
         this.originalRodPosition = fishingRod.position.clone();
