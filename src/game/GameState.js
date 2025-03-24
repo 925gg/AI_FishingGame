@@ -19,6 +19,7 @@ class GameState {
 
     endGame() {
         this.isGameActive = false;
+        this.stopFishing(); // Ensure fishing is stopped and rod is reset
     }
 
     updateTime(deltaTime) {
