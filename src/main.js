@@ -507,4 +507,18 @@ function animate(time) {
 }
 
 // Start the animation
-animate(0); 
+animate(0);
+
+// Set up audio context resuming on interaction
+document.addEventListener('click', function() {
+    if (gameState && gameState.audioManager) {
+        gameState.audioManager.resumeAudioContext();
+    }
+}, { once: false });
+
+// Also try to resume on keydown
+document.addEventListener('keydown', function() {
+    if (gameState && gameState.audioManager) {
+        gameState.audioManager.resumeAudioContext();
+    }
+}, { once: false }); 

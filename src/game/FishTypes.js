@@ -10,7 +10,8 @@ const FishTypes = [
         color: 0x7B9DB7, // Bluish gray
         size: { length: 0.3, height: 0.1, width: 0.05 },
         spawnChance: 0.5, // 50% chance to spawn
-        moveSpeed: 0.03
+        moveSpeed: 0.03,
+        timeBonus: 1 // 1 second time bonus for common fish
     },
     {
         id: 'rare',
@@ -20,7 +21,8 @@ const FishTypes = [
         color: 0xFFD700, // Gold
         size: { length: 0.4, height: 0.15, width: 0.07 },
         spawnChance: 0.3, // 30% chance to spawn
-        moveSpeed: 0.05
+        moveSpeed: 0.05,
+        timeBonus: 2 // 2 seconds bonus
     },
     {
         id: 'exotic',
@@ -30,7 +32,8 @@ const FishTypes = [
         color: 0xFF6347, // Tomato red
         size: { length: 0.5, height: 0.2, width: 0.1 },
         spawnChance: 0.15, // 15% chance to spawn
-        moveSpeed: 0.07
+        moveSpeed: 0.07,
+        timeBonus: 3 // 3 seconds bonus
     },
     {
         id: 'legendary',
@@ -40,7 +43,20 @@ const FishTypes = [
         color: 0x9400D3, // Purple
         size: { length: 0.6, height: 0.25, width: 0.12 },
         spawnChance: 0.05, // 5% chance to spawn
-        moveSpeed: 0.09
+        moveSpeed: 0.09,
+        timeBonus: 5 // 5 seconds bonus
+    },
+    {
+        id: 'mystery',
+        name: 'Mystery Fish',
+        points: 0, // Points determined when caught
+        catchDifficulty: 3, // Medium difficulty
+        color: 0x00FFFF, // Cyan base color
+        size: { length: 0.45, height: 0.15, width: 0.08 },
+        spawnChance: 0, // Handled separately in getRandomFishType
+        moveSpeed: 0.06,
+        timeBonus: 0, // Will be randomized when caught
+        isMystery: true // Flag to identify mystery fish
     }
 ];
 
@@ -146,15 +162,36 @@ function createFishMesh(fishType) {
     const sideFin2 = new THREE.Mesh(sideFin2Geometry, sideFin2Material);
     fishGroup.add(sideFin2);
     
+    // Add glow effect for mystery fish
+    if (fishType.isMystery) {
+        const glowGeometry = new THREE.SphereGeometry(
+            Math.max(fishType.size.length, fishType.size.height) * 0.6,
+            8, 8
+        );
+        const glowMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00FFFF,
+            transparent: true,
+            opacity: 0.5
+        });
+        const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
+        fishGroup.add(glowSphere);
+    }
+    
     return fishGroup;
 }
 
 // Function to get a random fish type based on spawn chance
 function getRandomFishType() {
+    // Check for mystery fish first (5% chance)
+    if (Math.random() < 0.05) {
+        return FishTypes.find(fish => fish.id === 'mystery');
+    }
+    
     const rand = Math.random();
     let cumulativeChance = 0;
     
-    for (const fishType of FishTypes) {
+    // Skip mystery fish when calculating normal fish spawn chances
+    for (const fishType of FishTypes.filter(fish => !fish.isMystery)) {
         cumulativeChance += fishType.spawnChance;
         if (rand < cumulativeChance) {
             return fishType;
