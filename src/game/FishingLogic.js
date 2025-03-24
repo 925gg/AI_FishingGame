@@ -260,6 +260,20 @@ class FishingLogic {
         
         // Reset game state
         this.gameState.stopFishing();
+        
+        // Reset rod position and rotation
+        this.resetRod();
+    }
+    
+    resetRod() {
+        // Reset rod to original position and rotation
+        if (this.fishingRod && this.originalRodPosition && this.originalRodRotation) {
+            this.fishingRod.position.copy(this.originalRodPosition);
+            this.fishingRod.rotation.copy(this.originalRodRotation);
+            this.isRodAnimating = false;
+            this.rodAnimationTime = 0;
+            this.rodAnimationType = null;
+        }
     }
     
     spawnFish(count = 20) {
