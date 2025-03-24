@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createFishMesh, getRandomFishType } from './FishTypes.js';
 import SkillCheck from './SkillCheck.js';
+import AudioManager from './AudioManager.js';
 
 class FishingLogic {
     constructor(scene, waterSurface, gameState, fishingRod) {
@@ -8,6 +9,7 @@ class FishingLogic {
         this.waterSurface = waterSurface;
         this.gameState = gameState;
         this.fishingRod = fishingRod;
+        this.audioManager = new AudioManager();
         
         // Store original rod position and rotation for animations
         this.originalRodPosition = fishingRod.position.clone();
@@ -70,6 +72,8 @@ class FishingLogic {
             return false;
         }
         
+        this.audioManager.playCastSound();
+        
         // Start rod casting animation
         this.startRodAnimation('cast', targetPoint);
         
@@ -107,6 +111,8 @@ class FishingLogic {
     
     fishBite() {
         if (!this.gameState.isFishing) return;
+        
+        this.audioManager.playBiteSound();
         
         // Select a random fish
         const fishType = getRandomFishType();
@@ -152,6 +158,8 @@ class FishingLogic {
             return;
         }
 
+        this.audioManager.playCatchSound();
+        
         // Calculate score with multiplier
         const basePoints = this.gameState.caughtFish.points;
         const finalPoints = Math.floor(basePoints * scoreMultiplier);
@@ -188,6 +196,8 @@ class FishingLogic {
     }
 
     handleCatchFail() {
+        this.audioManager.playMissSound();
+        
         // Penalty for missing
         this.gameState.addScore(-20);
         
