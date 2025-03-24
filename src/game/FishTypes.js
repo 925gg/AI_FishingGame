@@ -4,7 +4,7 @@ import * as THREE from 'three';
 const FishTypes = [
     {
         id: 'common',
-        name: 'Common Fish',
+        name: 'Brook Trout',
         points: 10,
         catchDifficulty: 1, // Lower means easier to catch
         color: 0x7B9DB7, // Bluish gray
@@ -14,7 +14,7 @@ const FishTypes = [
     },
     {
         id: 'rare',
-        name: 'Rare Fish',
+        name: 'Golden Carp',
         points: 30,
         catchDifficulty: 2,
         color: 0xFFD700, // Gold
@@ -24,7 +24,7 @@ const FishTypes = [
     },
     {
         id: 'exotic',
-        name: 'Exotic Fish',
+        name: 'Electric Angelfish',
         points: 50,
         catchDifficulty: 3,
         color: 0xFF6347, // Tomato red
@@ -34,7 +34,7 @@ const FishTypes = [
     },
     {
         id: 'legendary',
-        name: 'Legendary Fish',
+        name: 'Royal Oarfish',
         points: 100,
         catchDifficulty: 5,
         color: 0x9400D3, // Purple
