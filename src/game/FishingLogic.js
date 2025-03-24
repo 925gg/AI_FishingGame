@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createFishMesh, getRandomFishType } from './FishTypes.js';
+import SkillCheck from './SkillCheck.js';
 
 class FishingLogic {
     constructor(scene, waterSurface, gameState, fishingRod) {
@@ -27,6 +28,9 @@ class FishingLogic {
         
         // Initialize fishing gear
         this.createFishingGear();
+        
+        // Initialize skill check
+        this.skillCheck = new SkillCheck();
         
         // Boundaries for fish movement
         this.waterBounds = {
@@ -110,6 +114,13 @@ class FishingLogic {
         
         // Visual indicator - bobber moves
         this.animateBobber();
+
+        // Start skill check
+        this.skillCheck.start(
+            fishType.catchDifficulty,
+            (scoreMultiplier) => this.handleCatchSuccess(scoreMultiplier),
+            () => this.handleCatchFail()
+        );
     }
     
     animateBobber() {
@@ -133,6 +144,73 @@ class FishingLogic {
                 bobCount++;
             }
         }, 100);
+    }
+    
+    handleCatchSuccess(scoreMultiplier) {
+        if (!this.gameState.isFishing || !this.gameState.caughtFish) {
+            this.endFishing(false);
+            return;
+        }
+
+        // Calculate score with multiplier
+        const basePoints = this.gameState.caughtFish.points;
+        const finalPoints = Math.floor(basePoints * scoreMultiplier);
+        
+        // Add score based on caught fish
+        this.gameState.addScore(finalPoints);
+        
+        // Start rod reeling animation
+        this.startRodAnimation('reel', this.bobber.position);
+        
+        // Create a caught fish and animate it coming out of water
+        const fishMesh = createFishMesh(this.gameState.caughtFish);
+        fishMesh.position.copy(this.bobber.position);
+        this.scene.add(fishMesh);
+        
+        // Animate fish being caught
+        const startPos = fishMesh.position.clone();
+        const endPos = new THREE.Vector3(0, 1, -2); // Move above the dock
+        
+        let progress = 0;
+        const catchAnimation = setInterval(() => {
+            progress += 0.05;
+            
+            if (progress >= 1) {
+                clearInterval(catchAnimation);
+                this.scene.remove(fishMesh);
+                this.endFishing(true);
+                return;
+            }
+            
+            fishMesh.position.lerpVectors(startPos, endPos, progress);
+            fishMesh.rotation.y += 0.1; // Make fish spin as it's pulled out
+        }, 50);
+    }
+
+    handleCatchFail() {
+        // Penalty for missing
+        this.gameState.addScore(-20);
+        
+        // Visual feedback for penalty
+        const penaltyText = document.createElement('div');
+        penaltyText.textContent = '-20 points!';
+        penaltyText.style.position = 'absolute';
+        penaltyText.style.color = 'red';
+        penaltyText.style.fontSize = '24px';
+        penaltyText.style.fontWeight = 'bold';
+        penaltyText.style.left = '50%';
+        penaltyText.style.top = '50%';
+        penaltyText.style.transform = 'translate(-50%, -50%)';
+        penaltyText.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
+        document.body.appendChild(penaltyText);
+        
+        // Remove the text after a short delay
+        setTimeout(() => {
+            document.body.removeChild(penaltyText);
+        }, 1500);
+        
+        // End fishing after penalty
+        this.endFishing(false);
     }
     
     reelIn() {

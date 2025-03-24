@@ -106,7 +106,9 @@ class UI {
         instructions.style.lineHeight = '1.5';
         instructions.innerHTML = `
             <p>🎣 Click on water to cast your line</p>
-            <p>⌨️ Press SPACE when the bobber moves to catch a fish!</p>
+            <p>⌨️ When a fish bites, hit SPACE when the marker is in the green zone!</p>
+            <p>💫 Harder fish require more precise timing and multiple hits</p>
+            <p>⭐ Perfect catches in the center give bonus points!</p>
         `;
         this.container.appendChild(instructions);
     }
