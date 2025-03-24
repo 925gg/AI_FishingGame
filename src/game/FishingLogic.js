@@ -160,12 +160,38 @@ class FishingLogic {
 
         this.audioManager.playCatchSound();
         
-        // Calculate score with multiplier
-        const basePoints = this.gameState.caughtFish.points;
-        const finalPoints = Math.floor(basePoints * scoreMultiplier);
+        // Get fish type and prepare calculation variables
+        let fishType = this.gameState.caughtFish;
+        let basePoints = fishType.points;
+        let timeBonus = fishType.timeBonus;
         
-        // Add score based on caught fish
-        this.gameState.addScore(finalPoints);
+        // Handle mystery fish reveal
+        if (fishType.isMystery) {
+            // Random points between 10-150
+            basePoints = Math.floor(Math.random() * 140) + 10;
+            
+            // Random time bonus between 5-10 seconds
+            timeBonus = Math.floor(Math.random() * 6) + 5;
+            
+            // Show mystery reveal text
+            this.showMysteryReveal(basePoints, timeBonus);
+        }
+        
+        // Increment streak first
+        this.gameState.incrementStreak();
+        
+        // Calculate final score with both skill check multiplier and streak multiplier
+        const finalPoints = Math.floor(basePoints * scoreMultiplier);
+        const actualPointsAdded = this.gameState.addScore(finalPoints);
+        
+        // Show points indicator with streak info
+        this.showPointsIndicator(actualPointsAdded, this.gameState.streakCount);
+        
+        // Add time bonus if any
+        if (timeBonus > 0) {
+            const addedTime = this.gameState.addTime(timeBonus);
+            this.showTimeBonus(addedTime);
+        }
         
         // Start rod reeling animation
         this.startRodAnimation('reel', this.bobber.position);
@@ -197,6 +223,9 @@ class FishingLogic {
 
     handleCatchFail() {
         this.audioManager.playMissSound();
+        
+        // Reset streak when catching fails
+        this.gameState.resetStreak();
         
         // Penalty for missing
         this.gameState.addScore(-20);
@@ -388,6 +417,70 @@ class FishingLogic {
                 this.fishingRod.rotation.copy(this.originalRodRotation);
             }
         }
+    }
+
+    // Add new helper methods for UI feedback
+    showPointsIndicator(points, streak) {
+        const pointsText = document.createElement('div');
+        let streakText = '';
+        
+        if (streak > 1) {
+            streakText = ` (×${(1 + 0.2 * Math.min(streak, 5)).toFixed(1)} streak!)`;
+        }
+        
+        pointsText.textContent = `+${points} points${streakText}`;
+        pointsText.style.position = 'absolute';
+        pointsText.style.color = streak > 1 ? '#FFD700' : 'white'; // Gold for streak
+        pointsText.style.fontSize = '24px';
+        pointsText.style.fontWeight = 'bold';
+        pointsText.style.left = '50%';
+        pointsText.style.top = '35%';
+        pointsText.style.transform = 'translate(-50%, -50%)';
+        pointsText.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
+        document.body.appendChild(pointsText);
+        
+        // Remove the text after a short delay
+        setTimeout(() => {
+            document.body.removeChild(pointsText);
+        }, 1500);
+    }
+
+    showTimeBonus(seconds) {
+        const timeText = document.createElement('div');
+        timeText.textContent = `+${seconds} seconds`;
+        timeText.style.position = 'absolute';
+        timeText.style.color = '#00FF00'; // Green for time bonus
+        timeText.style.fontSize = '20px';
+        timeText.style.fontWeight = 'bold';
+        timeText.style.left = '50%';
+        timeText.style.top = '40%';
+        timeText.style.transform = 'translate(-50%, -50%)';
+        timeText.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
+        document.body.appendChild(timeText);
+        
+        // Remove the text after a short delay
+        setTimeout(() => {
+            document.body.removeChild(timeText);
+        }, 1500);
+    }
+
+    showMysteryReveal(points, timeBonus) {
+        const mysteryText = document.createElement('div');
+        mysteryText.textContent = `Mystery Fish! ${points} points, ${timeBonus} seconds`;
+        mysteryText.style.position = 'absolute';
+        mysteryText.style.color = '#00FFFF'; // Cyan for mystery fish
+        mysteryText.style.fontSize = '28px';
+        mysteryText.style.fontWeight = 'bold';
+        mysteryText.style.left = '50%';
+        mysteryText.style.top = '30%';
+        mysteryText.style.transform = 'translate(-50%, -50%)';
+        mysteryText.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
+        document.body.appendChild(mysteryText);
+        
+        // Remove the text after a short delay
+        setTimeout(() => {
+            document.body.removeChild(mysteryText);
+        }, 2000);
     }
 }
 

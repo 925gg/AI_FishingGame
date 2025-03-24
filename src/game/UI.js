@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 class UI {
     constructor(gameState) {
         this.gameState = gameState;
@@ -13,6 +15,7 @@ class UI {
         this.nameInputContainer = null;
         this.nameInput = null;
         this.saveButton = null;
+        this.streakElement = null; // New element for streak display
         
         // Create UI elements
         this.initUI();
@@ -238,6 +241,21 @@ class UI {
         musicControls.appendChild(musicButton);
         musicControls.appendChild(volumeSlider);
         document.body.appendChild(musicControls);
+
+        // Create streak element
+        this.streakElement = document.createElement('div');
+        this.streakElement.style.position = 'absolute';
+        this.streakElement.style.top = '70px';
+        this.streakElement.style.right = '20px';
+        this.streakElement.style.color = 'white';
+        this.streakElement.style.fontSize = '18px';
+        this.streakElement.style.fontWeight = 'bold';
+        this.streakElement.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
+        this.streakElement.style.padding = '8px 15px';
+        this.streakElement.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        this.streakElement.style.borderRadius = '5px';
+        this.streakElement.style.display = 'none';
+        document.body.appendChild(this.streakElement);
     }
     
     updateLeaderboard() {
@@ -289,63 +307,86 @@ class UI {
     }
 
     update() {
-        // Update score display
-        this.scoreElement.textContent = `Score: ${this.gameState.score}`;
-        
-        // Update timer display
-        const timeInSeconds = Math.ceil(this.gameState.timeRemaining);
-        this.timerElement.textContent = `Time: ${timeInSeconds}s`;
-        
-        // Show/hide start button based on game state
-        this.startButton.style.display = this.gameState.isGameActive ? 'none' : 'block';
-        
-        // Update fish info if a fish is caught
-        if (this.gameState.isFishing && this.gameState.caughtFish) {
-            this.fishInfoElement.style.display = 'block';
-            this.fishInfoElement.textContent = `Got a bite! ${this.gameState.caughtFish.name} (${this.gameState.caughtFish.points} pts)`;
+        if (this.gameState.isGameActive) {
+            // Update score display
+            this.scoreElement.textContent = `Score: ${this.gameState.score}`;
             
-            // Set background color based on fish rarity
-            switch(this.gameState.caughtFish.id) {
-                case 'common':
-                    this.fishInfoElement.style.backgroundColor = 'rgba(123, 157, 183, 0.7)';
-                    break;
-                case 'rare':
-                    this.fishInfoElement.style.backgroundColor = 'rgba(255, 215, 0, 0.7)';
-                    break;
-                case 'exotic':
-                    this.fishInfoElement.style.backgroundColor = 'rgba(255, 99, 71, 0.7)';
-                    break;
-                case 'legendary':
-                    this.fishInfoElement.style.backgroundColor = 'rgba(148, 0, 211, 0.7)';
-                    break;
-                default:
-                    this.fishInfoElement.style.backgroundColor = 'rgba(65, 105, 225, 0.6)';
-            }
-        } else {
-            this.fishInfoElement.style.display = 'none';
-        }
-        
-        // Update message based on game state
-        if (!this.gameState.isGameActive && this.gameState.score > 0) {
-            this.messageElement.textContent = `Game Over! Final Score: ${this.gameState.score}`;
-            this.messageElement.style.backgroundColor = 'rgba(220, 20, 60, 0.7)';
-            this.messageElement.style.fontWeight = 'bold';
-        } else if (this.gameState.isGameActive) {
-            if (this.gameState.isFishing) {
-                this.messageElement.textContent = 'Waiting for a bite...';
-                this.messageElement.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+            // Update timer display - format as MM:SS
+            const minutes = Math.floor(this.gameState.timeRemaining / 60);
+            const seconds = Math.floor(this.gameState.timeRemaining % 60);
+            this.timerElement.textContent = `Time: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            
+            // Show/hide UI elements
+            this.startButton.style.display = 'none';
+            this.messageElement.textContent = this.gameState.isFishing ? 'Waiting for a bite...' : 'Click on water to cast your line!';
+            
+            // Update fish info if a fish is caught
+            if (this.gameState.isFishing && this.gameState.caughtFish) {
+                this.fishInfoElement.style.display = 'block';
+                this.fishInfoElement.textContent = `Got a bite! ${this.gameState.caughtFish.name} (${this.gameState.caughtFish.points} pts)`;
+                
+                // Set background color based on fish rarity
+                switch(this.gameState.caughtFish.id) {
+                    case 'common':
+                        this.fishInfoElement.style.backgroundColor = 'rgba(123, 157, 183, 0.7)';
+                        break;
+                    case 'rare':
+                        this.fishInfoElement.style.backgroundColor = 'rgba(255, 215, 0, 0.7)';
+                        break;
+                    case 'exotic':
+                        this.fishInfoElement.style.backgroundColor = 'rgba(255, 99, 71, 0.7)';
+                        break;
+                    case 'legendary':
+                        this.fishInfoElement.style.backgroundColor = 'rgba(148, 0, 211, 0.7)';
+                        break;
+                    case 'mystery':
+                        this.fishInfoElement.style.backgroundColor = 'rgba(0, 255, 255, 0.7)';
+                        break;
+                    default:
+                        this.fishInfoElement.style.backgroundColor = 'rgba(65, 105, 225, 0.6)';
+                }
             } else {
-                this.messageElement.textContent = 'Click on water to cast your line!';
-                this.messageElement.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+                this.fishInfoElement.style.display = 'none';
             }
-        }
-
-        // Handle name input visibility
-        if (this.gameState.isEnteringName) {
+            
+            // Handle name input visibility
+            this.nameInputContainer.style.display = 'none';
+            
+            // Update streak display
+            if (this.gameState.streakCount > 1) {
+                this.streakElement.textContent = `Streak: ${this.gameState.streakCount} (×${this.gameState.scoreMultiplier.toFixed(1)})`;
+                this.streakElement.style.display = 'block';
+                this.streakElement.style.color = '#FFD700'; // Gold color for active streak
+            } else {
+                this.streakElement.style.display = 'none';
+            }
+        } else if (this.gameState.isEnteringName) {
+            // Show name input screen
             this.nameInputContainer.style.display = 'block';
             this.nameInput.focus();
+            this.startButton.style.display = 'none';
+            
+            // Hide streak display
+            this.streakElement.style.display = 'none';
         } else {
-            this.nameInputContainer.style.display = 'none';
+            // Game over or start screen
+            this.startButton.style.display = 'block';
+            
+            // Update message based on game state
+            if (this.gameState.score > 0) {
+                this.messageElement.textContent = `Game Over! Final Score: ${this.gameState.score}`;
+                this.messageElement.style.backgroundColor = 'rgba(220, 20, 60, 0.7)';
+                this.messageElement.style.fontWeight = 'bold';
+            } else {
+                this.messageElement.textContent = 'Press Start to begin!';
+                this.messageElement.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+            }
+            
+            // Hide streak display when game is not active
+            this.streakElement.style.display = 'none';
+            
+            // Update leaderboard
+            this.updateLeaderboard();
         }
     }
     

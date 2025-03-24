@@ -11,6 +11,9 @@ class GameState {
         this.leaderboard = this.loadLeaderboard();
         this.isEnteringName = false;
         this.audioManager = new AudioManager(); // Initialize AudioManager
+        // Add streak and multiplier properties
+        this.streakCount = 0;
+        this.scoreMultiplier = 1;
         
         // Start background music
         // Note: Modern browsers require user interaction before playing audio
@@ -58,6 +61,9 @@ class GameState {
         this.isFishing = false;
         this.catchProgress = 0;
         this.caughtFish = null;
+        // Reset streak and multiplier when starting a new game
+        this.streakCount = 0;
+        this.scoreMultiplier = 1;
     }
 
     endGame() {
@@ -79,7 +85,10 @@ class GameState {
     }
 
     addScore(points) {
-        this.score += points;
+        // Apply score multiplier and round down to integer
+        const multipliedPoints = Math.floor(points * this.scoreMultiplier);
+        this.score += multipliedPoints;
+        return multipliedPoints; // Return actual points added for UI feedback
     }
 
     startFishing() {
@@ -95,6 +104,28 @@ class GameState {
         this.isFishing = false;
         this.catchProgress = 0;
         this.caughtFish = null;
+    }
+
+    // New methods for streak handling
+    incrementStreak() {
+        this.streakCount++;
+        // Cap multiplier at 2.0 (5 successful catches)
+        this.scoreMultiplier = 1 + (0.2 * Math.min(this.streakCount, 5));
+        return this.scoreMultiplier;
+    }
+
+    resetStreak() {
+        this.streakCount = 0;
+        this.scoreMultiplier = 1;
+    }
+
+    // New method for time extension
+    addTime(seconds) {
+        if (this.isGameActive) {
+            this.timeRemaining += seconds;
+            return seconds; // Return added time for UI feedback
+        }
+        return 0;
     }
 }
 
